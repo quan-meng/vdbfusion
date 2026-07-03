@@ -157,7 +157,7 @@ class VDBVolume:
     def extract_vdb_grids(self, out_file: str) -> None:
         """For now, write the internal map representation to a file.
 
-        Contains both D(x) and W(x) grids.
+        Contains the TSDF grid.
         """
         self._volume._extract_vdb_grids(out_file)
 
@@ -168,3 +168,7 @@ class VDBVolume:
         This function is ideal to cleanup the TSDF grid:D(x) before exporting it.
         """
         return self._volume._prune(min_weight)
+
+    def mask(self, laser_fusion_path: str, out_path: str) -> None:
+        """Mask the TSDF grid using another VDB grid and write the result to disk."""
+        self._volume._mask(laser_fusion_path, out_path)

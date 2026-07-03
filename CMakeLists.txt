@@ -20,17 +20,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.18)
 project(VDBFusion VERSION 0.1.6 LANGUAGES CXX)
 
 # Setup build options
 option(USE_CCACHE "Build using Ccache if found on the path" ON)
 option(USE_SYSTEM_EIGEN3 "Use system pre-installed eigen3" ON)
 option(USE_SYSTEM_OPENVDB "Use system pre-installed OpenVDB" ON)
+option(PYBIND11_FINDPYTHON "Find python for pybind11" ON)
 option(USE_SYSTEM_PYBIND11 "Use system pre-installed pybind11" ON)
 option(SILENCE_WARNINGS "To build manylinux packages only, disable on the global scope" OFF)
 option(BUILD_CXX_EXAMPLE "Build C++ examples" OFF)
-option(BUILD_PYTHON_BINDINGS "Build the python module" OFF)
+option(BUILD_PYTHON_BINDINGS "Build the python module" ON)
 
 mark_as_advanced(USE_CCACHE USE_SYSTEM_OPENVDB SILENCE_WARNINGS BUILD_PYTHON_BINDINGS)
 
