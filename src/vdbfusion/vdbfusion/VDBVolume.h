@@ -28,6 +28,7 @@
 
 #include <Eigen/Core>
 #include <functional>
+#include <string>
 #include <tuple>
 
 namespace vdbfusion {
@@ -64,6 +65,9 @@ public:
 
     /// @brief Prune TSDF grids, ideal utility to cleanup a D(x) volume before exporting it
     openvdb::FloatGrid::Ptr Prune(float min_weight) const;
+
+    /// @brief Mask TSDF grid using another VDB grid as a mask and write to disk
+    void Mask(std::string laser_fusion_path, std::string out_path) const;
 
     /// @brief Extracts a TriangleMesh as the iso-surface in the actual volume
     [[nodiscard]] std::tuple<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3i>>

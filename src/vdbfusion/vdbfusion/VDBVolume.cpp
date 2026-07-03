@@ -27,6 +27,9 @@
 #include <openvdb/math/DDA.h>
 #include <openvdb/math/Ray.h>
 #include <openvdb/openvdb.h>
+#include <openvdb/Grid.h>
+#include <openvdb/io/File.h>
+#include <openvdb/tree/Tree.h>
 
 #include <Eigen/Core>
 #include <algorithm>
@@ -61,13 +64,13 @@ namespace vdbfusion {
 
 VDBVolume::VDBVolume(float voxel_size, float sdf_trunc, bool space_carving /* = false*/)
     : voxel_size_(voxel_size), sdf_trunc_(sdf_trunc), space_carving_(space_carving) {
-    tsdf_ = openvdb::FloatGrid::create(sdf_trunc_);
-    tsdf_->setName("D(x): signed distance grid");
+    tsdf_ = openvdb::FloatGrid::create(-sdf_trunc_);
+    tsdf_->setName("tsdf");
     tsdf_->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size_));
     tsdf_->setGridClass(openvdb::GRID_LEVEL_SET);
 
     weights_ = openvdb::FloatGrid::create(0.0f);
-    weights_->setName("W(x): weights grid");
+    weights_->setName("weight");
     weights_->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size_));
     weights_->setGridClass(openvdb::GRID_UNKNOWN);
 }
@@ -151,9 +154,9 @@ void VDBVolume::Integrate(const std::vector<Eigen::Vector3d>& points,
 openvdb::FloatGrid::Ptr VDBVolume::Prune(float min_weight) const {
     const auto weights = weights_->tree();
     const auto tsdf = tsdf_->tree();
-    const auto background = sdf_trunc_;
-    openvdb::FloatGrid::Ptr clean_tsdf = openvdb::FloatGrid::create(sdf_trunc_);
-    clean_tsdf->setName("D(x): Pruned signed distance grid");
+    const auto background = -sdf_trunc_;
+    openvdb::FloatGrid::Ptr clean_tsdf = openvdb::FloatGrid::create(-sdf_trunc_);
+    clean_tsdf->setName("tsdf");
     clean_tsdf->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size_));
     clean_tsdf->setGridClass(openvdb::GRID_LEVEL_SET);
     clean_tsdf->tree().combine2Extended(tsdf, weights, [=](openvdb::CombineArgs<float>& args) {
@@ -167,4 +170,47 @@ openvdb::FloatGrid::Ptr VDBVolume::Prune(float min_weight) const {
     });
     return clean_tsdf;
 }
+
+void VDBVolume::Mask(std::string laser_fusion_path, std::string out_path) const
+{
+    // Load the mask grid from file
+    openvdb::io::File file(laser_fusion_path);
+    file.open();
+    openvdb::GridBase::Ptr baseGrid = file.readGrid(file.beginName().gridName());
+    file.close();
+
+    // Cast to FloatGrid
+    openvdb::FloatGrid::Ptr mask_grid = openvdb::gridPtrCast<openvdb::FloatGrid>(baseGrid);
+    if (!mask_grid) {
+        std::cerr << "Failed to load mask grid from: " << laser_fusion_path << std::endl;
+        return;
+    }
+
+    // Create a new grid with the same transform and properties
+    openvdb::FloatGrid::Ptr masked_tsdf = openvdb::FloatGrid::create(-sdf_trunc_);
+    masked_tsdf->setName("tsdf");
+    masked_tsdf->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size_));
+    masked_tsdf->setGridClass(openvdb::GRID_LEVEL_SET);
+
+    // Combine the grids - only keep voxels that are active in both grids
+    const auto mask = mask_grid->tree();
+    const auto tsdf = tsdf_->tree();
+    const auto background = -sdf_trunc_;
+
+    masked_tsdf->tree().combine2Extended(tsdf, mask, [=](openvdb::CombineArgs<float>& args) {
+        if (args.aIsActive() && args.bIsActive()) {
+            args.setResult(args.a());
+            args.setResultIsActive(true);
+        } else {
+            args.setResult(background);
+            args.setResultIsActive(false);
+        }
+    });
+
+    // Write the masked grid to disk
+    openvdb::io::File out_file(out_path);
+    out_file.write({masked_tsdf});
+    out_file.close();
+}
+
 }  // namespace vdbfusion

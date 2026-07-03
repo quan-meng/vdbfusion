@@ -50,17 +50,22 @@ if(BUILD_PYTHON_BINDINGS)
 endif()
 
 if(USE_SYSTEM_OPENVDB)
-  # When OpenVDB is available on the system, we just go for the dynamic version of it
+  # When OpenVDB is available on the system, we just go for the dynamic version of it.
   include(GNUInstallDirs)
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_INSTALL_FULL_LIBDIR}/cmake/OpenVDB")
+  if(DEFINED ENV{CONDA_PREFIX})
+    list(APPEND CMAKE_PREFIX_PATH "$ENV{CONDA_PREFIX}")
+    list(APPEND CMAKE_MODULE_PATH "$ENV{CONDA_PREFIX}/lib/cmake/OpenVDB")
+  endif()
   find_package(OpenVDB QUIET)
   if(OpenVDB_FOUND AND OpenVDB_USES_BLOSC)
-    # We need to get these hidden dependencies (if available) to static link them inside our library
+    # We need to get these hidden dependencies (if available) to static link them inside our library.
     target_link_libraries(OpenVDB::openvdb INTERFACE Blosc::blosc)
   endif()
 endif()
+
 # When not using a pre installed version of OpenVDB we assume that no dependencies are installed and
-# therefore build blos-c, tbb, and libboost from soruce
+# therefore build blos-c, tbb, and libboost from source.
 if(NOT USE_SYSTEM_OPENVDB OR NOT OpenVDB_FOUND)
   set(USE_SYSTEM_OPENVDB OFF)
   include(${CMAKE_CURRENT_LIST_DIR}/OpenVDB/OpenVDB.cmake)

@@ -45,18 +45,16 @@ class CMakeBuild(build_ext):
         debug = int(os.environ.get("DEBUG", 0)) if self.debug is None else self.debug
         cfg = "Debug" if debug else "Release"
 
-        # CMake lets you override the generator - we need to check this.
-        # Can be set with Conda-Build, for example.
         cmake_generator = os.environ.get("CMAKE_GENERATOR", "")
 
-        # Set Python_EXECUTABLE instead if you use PYBIND11_FINDPYTHON
-        # EXAMPLE_VERSION_INFO shows you how to pass a value into the C++ code
-        # from Python.
         cmake_args = [
-            f"-DBUILD_PYTHON_BINDINGS=ON",
+            f"-DCMAKE_C_COMPILER={subprocess.check_output(['which', 'gcc']).decode('utf-8').strip()}",
+            f"-DCMAKE_CXX_COMPILER={subprocess.check_output(['which', 'g++']).decode('utf-8').strip()}",
+            f"-DCMAKE_INSTALL_PREFIX={os.environ.get('CONDA_PREFIX', '/usr/local')}",
+            "-DBUILD_PYTHON_BINDINGS=ON",
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}",
             f"-DPYTHON_EXECUTABLE={sys.executable}",
-            f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
+            f"-DCMAKE_BUILD_TYPE={cfg}",
         ]
         build_args = []
 

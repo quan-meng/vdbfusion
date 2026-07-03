@@ -52,6 +52,9 @@ using namespace py::literals;
 namespace vdbfusion {
 
 PYBIND11_MODULE(vdbfusion_pybind, m) {
+    // Initialize OpenVDB so grid types are registered before VDB file IO.
+    openvdb::initialize();
+
     auto vector3dvector = pybind_eigen_vector_of_vector<Eigen::Vector3d>(
         m, "_VectorEigen3d", "std::vector<Eigen::Vector3d>",
         py::py_array_to_vectors_double<Eigen::Vector3d>);
@@ -143,9 +146,10 @@ PYBIND11_MODULE(vdbfusion_pybind, m) {
         .def(
             "_extract_vdb_grids",
             [](const VDBVolume& self, const std::string& filename) {
-                openvdb::io::File(filename).write({self.tsdf_, self.weights_});
+                openvdb::io::File(filename).write({self.tsdf_});
             },
             "filename"_a)
+        .def("_mask", &VDBVolume::Mask, "laser_fusion_path"_a, "out_path"_a)
 #ifndef PYOPENVDB_SUPPORT
         .def_property_readonly_static("PYOPENVDB_SUPPORT_ENABLED", [](py::object) { return false; })
 #else
