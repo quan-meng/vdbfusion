@@ -14,6 +14,16 @@
 This is a small utility library that implements the VDBFusion algorithm, similar to TSDF-based
 reconstruction pipelines but using a different data-structure (VDB).
 
+## Seen2Scene fork
+
+This fork keeps upstream VDBFusion and adds the small changes needed by
+[Seen2Scene](https://github.com/quan-meng/seen2scene):
+
+- Export VDB files with a single `tsdf` grid because Seen2Scene loaders consume one TSDF grid per fusion file.
+- Use `-sdf_trunc` as the inactive/pruned/masked TSDF background to match Seen2Scene's TSDF convention.
+- Add `VDBVolume::Mask(...)` and Python `VDBVolume.mask(...)` to intersect a fused TSDF with a mask VDB for visible-region data.
+- Enable Python bindings by default and search OpenVDB under `CONDA_PREFIX` for reproducible builds inside the Seen2Scene conda environment.
+
 ## Installation
 
 Take a seat and relax, you only need to:
